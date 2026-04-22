@@ -60,3 +60,53 @@ func (cli *Client) ListLocations(pageURL *string) (RespOverviewLocations, error)
 	cli.cache.Add(url, dat)
 	return locationsResp, nil
 }
+
+type RespPokemonByLocation struct {
+	GameIndex         int    `json:"game_index"`
+	ID                int    `json:"id"`
+	Name              string `json:"name"`
+	PokemonEncounters []struct {
+		Pokemon struct {
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		} `json:"pokemon"`
+	} `json:"pokemon_encounters"`
+}
+
+func (cli *Client) ListPokemonByLocation(identifier string) (RespPokemonByLocation, error) {
+	url := baseURL + "/location-area/" + identifier
+
+	if val, ok := cli.cache.Get(url); ok {
+		localPokemonResp := RespPokemonByLocation{}
+		err := json.Unmarshal(val, &localPokemonResp)
+		if err != nil {
+			return RespPokemonByLocation{}, err
+		}
+		return localPokemonResp, nil
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return RespPokemonByLocation{}, err
+	}
+
+	resp, err := cli.httpClient.Do(req)
+	if err != nil {
+		return RespPokemonByLocation{}, err
+	}
+	defer resp.Body.Close()
+
+	dat, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return RespPokemonByLocation{}, err
+	}
+
+	localPokemonResp := RespPokemonByLocation{}
+	err = json.Unmarshal(dat, &localPokemonResp)
+	if err != nil {
+		return RespPokemonByLocation{}, err
+	}
+
+	cli.cache.Add(url, dat)
+	return localPokemonResp, nil
+}
