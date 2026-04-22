@@ -11,7 +11,7 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*config) error
+	callback    func(*config, ...string) error
 }
 
 type config struct {
@@ -28,8 +28,17 @@ func startREPL(cfg *config) {
 		scanner.Scan()
 		input := scanner.Text()
 		cleanedInput := cleanInput(input)
-		if cmd, exist := getCommands()[cleanedInput[0]]; exist {
-			err := cmd.callback(cfg)
+		if len(cleanedInput) == 0 {
+			continue
+		}
+
+		cmdName := cleanedInput[0]
+		args := []string{}
+		if len(cleanedInput) > 0 {
+			args = cleanedInput[1:]
+		}
+		if cmd, exist := getCommands()[cmdName]; exist {
+			err := cmd.callback(cfg, args...)
 			if err != nil {
 				fmt.Printf("Error: %v", err)
 			}
@@ -61,6 +70,11 @@ func getCommands() map[string]cliCommand {
 			name:        "mapb",
 			description: "Get the previous page of locations",
 			callback:    commandMapb,
+		},
+		"explore": {
+			name:        "explore",
+			description: "Get all pokemon that can be encountered in a location area",
+			callback:    commandExplore,
 		},
 	}
 }
